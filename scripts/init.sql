@@ -1,11 +1,14 @@
---- ############################################################ 
+--- ############################################################
 --- create a database and roles
---- ############################################################ 
-
+--- ############################################################
 --- start from clean slate
-drop database if exists tododb;
+
+DROP DATABASE IF EXISTS tododb;
+
 DROP ROLE IF EXISTS todoadmin;
+
 DROP ROLE IF EXISTS todouser;
+
 DROP ROLE IF EXISTS todoservice;
 
 --- a nonsuperuser db role
@@ -16,10 +19,12 @@ CREATE ROLE todouser;
 
 --- a service role
 CREATE ROLE todoservice INHERIT;
-GRANT todouser TO todoservice;
 
+GRANT todouser TO todoservice;
 
 ---############################################################-
 --- database
----############################################################ 
-create database tododb owner todoadmin;
+---############################################################
+
+CREATE DATABASE tododb OWNER todoadmin;
+
