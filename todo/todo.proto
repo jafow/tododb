@@ -1,0 +1,150 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+service DraftChecklistService {
+  // Create either a new version of an existing draft checklist or an entirely
+  // new draft checklist.
+  rpc CreateDraftChecklist(CreateDraftChecklistRequest) returns (CreateDraftChecklistResponse) {}
+  // Get an existing draft checklist.
+  rpc GetDraftChecklist(GetDraftChecklistRequest) returns (GetDraftChecklistResponse) {}
+}
+
+message CreateDraftChecklistRequest {
+  // The initial content of any checklists spawned from the draft checklist.
+  ChecklistContent content = 1;
+  // Only required for draft templates being created from an existing draft
+  // template. Draft family id is wrapped in "oneof" to prevent draft_family_id from
+  // defaulting to 0 (which may be a valid but unintended id).
+  oneof family_id {
+  // Draft checklists are immutable and can only be created. As a result, updates
+  // to a draft checklist create a new checklist and set the draft_family_id.
+    int64 draft_family_id = 2;
+  }
+}
+
+message CreateDraftChecklistResponse {
+  // The created draft checklist.
+  DraftChecklist draft = 1;
+}
+
+message GetDraftChecklistRequest {
+  // The id of the draft checklist to fetch.
+  int64 id = 1;
+}
+
+message GetDraftChecklistRequest {
+  // The fetched draft checklist.
+  DraftChecklist draft = 1;
+}
+
+service ChecklistService {
+  // Spawn a mutable instance of a draft checklist.
+  rpc SpawnChecklist(SpawnChecklistRequest) returns (SpawnChecklistResponse) {}
+  // Get a checklist instance.
+  rpc GetChecklist(GetChecklist) returns (GetChecklist) {}
+  // Arbitrarily update the content of a checklist.
+  rpc UpdateChecklist(UpdateChecklistRequest) returns (UpdateChecklistResponse) {}
+  // Delete the checklist instance and all associated items.
+  rpc DeleteChecklist(DeleteChecklistRequest) returns (DeleteChecklistResponse) {}
+}
+
+message SpawnChecklistRequest {
+  // The id of the draft checklist to spawn the checklist from. The default is
+  // the id of the root draft checklist, an empty checklist.
+  int64 draft_id = 1; [default = 0]
+}
+
+message SpawnChecklistResponse {
+  Checklist checklist = 1;
+}
+
+message GetChecklistRequest {
+  // The id of the checklist to fetch.
+  int64 id = 1;
+}
+
+message GetChecklistResponse {
+  // The materialized checklist.
+  Checklist checklist = 1;
+}
+
+message UpdateChecklistRequest {
+  // The id of the checklist to update.
+  string id = 1;
+  // The content of the updated checklist.
+  ChecklistContent content = 2;
+}
+
+message UpdateChecklistResponse {
+  // The latest checklist state known by the server after update.
+  Checklist content = 1;
+}
+
+message DeleteChecklistRequest {
+  // The id of the checklist to update.
+  string id = 1;
+}
+
+message DeleteChecklistRequest {}
+
+// An static snapshot of an unrealized checklist. A draft checklist is only
+// intended to be used to spawn active checklists. A root draft checklist exists
+// with no content to spawn a basic new checklist.
+message DraftChecklist {
+  // Unique ID for this draft checklist version.
+  int64 id = 1;
+  // The content to be materlized when the draft is spawned.
+  ChecklistContent content = 2;
+  // The time the draft version was saved in seconds since epoch.
+  google.protobuf.Timestamp creation_time = 3;
+  // The authority that can alter or spawn checklists from the draft. The same
+  // as the creator for now.
+  string owner = 4;
+  // An ID shared by all version of the same draft. Uses the first versions
+  // draft id to create this id.
+  int64 draft_family_id = 5;
+  // The descendent version of the draft checklist starting from 1.
+  int64 version = 6; [default = 1]
+  // Determines whether this draft checklist is eligible to spawn checklists from.
+  bool active = 7; [default = true]
+}
+
+message Checklist {
+  // The ID of a checklist.
+  string id = 1;
+  // The dynamic content displayed in a checklist.
+  ChecklistContent content = 2;
+  // The time the checklist was spawned in seconds since epoch.
+  google.protobuf.Timestamp creation_time = 3;
+  // The time the checklist was last updated in seconds since epoch.
+  google.protobuf.Timestamp last_update_time = 4;
+  // The time the checklist is set to expire in seconds since epoch.
+  google.protobuf.Timestamp expiration_time = 5;
+  // The id of the draft checklist. The default draft_id matches the id of the
+  // root draft checklist, an ordinary empty checklist.
+  int64 draft_id = 6;
+}
+
+message ChecklistContent {
+  // The display title of checklist.
+  string title = 1;
+  // Optional metadata for the checklist.
+  string description = 2;
+  // All items in the checklist, waiting to be checked.
+  repeated Item items = 3;
+}
+
+message Item {
+  // A unique identifier for a checklist todo item.
+  string id = 1;
+  // The display text for an item.
+  string description = 2;
+  // The current state of the item (i.e. is the box checked).
+  bool complete = 3; [default = false]
+  // The last time an item was updated in seconds since epoch. Not relevant for draft checklists..
+  google.protobuf.Timestamp last_update_time = 4;
+  // The time the item was created in seconds since epoch. Not relevant for draft checklists.
+  google.protobuf.Timestamp creation_time = 4;
+}
